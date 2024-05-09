@@ -7,7 +7,7 @@ mongoose.connect("mongodb://localhost:27017/mqtt_datastore", {
   useUnifiedTopology: true,
 });
 
-const TemperatureData = mongoose.model("TemperatureData", {
+const TemperatureData = mongoose.model("Temperature", {
   temperature: Number,
   timestamp: {
     type: Date,
@@ -28,7 +28,7 @@ const client = mqtt.connect(mqttOptions);
 client.on("connect", function () {
   console.log("Connected to MQTT broker");
   // Subscribe to the temperature topic
-  client.subscribe("temperature");
+  client.subscribe("sensor/temperature_celsius");
 });
 
 client.on("error", function (error) {
