@@ -17,7 +17,7 @@ const TemperatureData = mongoose.model("Temperature", {
 
 // MQTT connection options
 const mqttOptions = {
-  host: "mqtt://192.168.0.180",
+  host: "localhost",
   port: 1883, // Default MQTT port
 };
 
@@ -39,7 +39,7 @@ client.on("error", function (error) {
 client.on("message", function (topic, message) {
   console.log("Received message:", message.toString(), "on topic:", topic);
 
-  if (topic === "temperature") {
+  if (topic === "sensor/temperature_celsius") {
     const temperature = parseFloat(message.toString());
     if (!isNaN(temperature)) {
       // Save temperature data to MongoDB
