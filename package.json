@@ -12,7 +12,9 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
-    "mongoose": "^8.3.4",
-    "mqtt": "^5.5.5"
+    "cors": "^2.8.5",
+    "express": "^4.19.2",
+    "mqtt": "^5.7.0",
+    "socket.io": "^4.7.5"
   }
 }

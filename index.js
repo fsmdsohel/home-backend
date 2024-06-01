@@ -1,58 +1,55 @@
+const express = require("express");
+const http = require("http");
+const socketIo = require("socket.io");
 const mqtt = require("mqtt");
-const mongoose = require("mongoose");
+const cors = require("cors");
 
-// MongoDB connection
-mongoose.connect("mongodb://localhost:27017/mqtt_datastore", {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-});
-
-const TemperatureData = mongoose.model("Temperature", {
-  temperature: Number,
-  timestamp: {
-    type: Date,
-    default: Date.now,
+const app = express();
+const server = http.createServer(app);
+const io = socketIo(server, {
+  cors: {
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   },
 });
 
-// MQTT connection options
-const mqttOptions = {
-  host: "localhost",
-  port: 1883, // Default MQTT port
-};
+app.use(cors());
+app.use(express.json());
 
-// Connect to MQTT broker
-const client = mqtt.connect(mqttOptions);
+const mqttClient = mqtt.connect("mqtt://192.168.0.175:1883");
 
-// MQTT connection event handlers
-client.on("connect", function () {
+mqttClient.on("connect", () => {
   console.log("Connected to MQTT broker");
-  // Subscribe to the temperature topic
-  client.subscribe("sensor/temperature_celsius");
+  mqttClient.subscribe("analog/pin18");
 });
 
-client.on("error", function (error) {
-  console.error("Error:", error);
+mqttClient.on("message", (topic, message) => {
+  console.log(`Received message: ${message.toString()} on topic: ${topic}`);
+  io.emit("mqttMessage", { topic, message: message.toString() });
 });
 
-// MQTT message handler
-client.on("message", function (topic, message) {
-  console.log("Received message:", message.toString(), "on topic:", topic);
-
-  if (topic === "sensor/temperature_celsius") {
-    const temperature = parseFloat(message.toString());
-    if (!isNaN(temperature)) {
-      // Save temperature data to MongoDB
-      const data = new TemperatureData({
-        temperature: temperature,
-      });
-
-      data
-        .save()
-        .then(() => console.log("Temperature data saved to MongoDB"))
-        .catch((err) => console.error("Error saving temperature data:", err));
-    } else {
-      console.error("Invalid temperature value received:", message.toString());
-    }
+app.post("/publish", express.json(), (req, res) => {
+  try {
+    const { topic, message } = req.body;
+    mqttClient.publish(topic, message, () => {
+      res.send(`Message published to topic ${topic}`);
+    });
+  } catch (error) {
+    res.status(500).send(error.message);
   }
+});
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
+
+io.on("connection", (socket) => {
+  console.log("New WebSocket connection");
+  socket.on("disconnect", () => {
+    console.log("WebSocket disconnected");
+  });
+});
+
+const PORT = 5002;
+server.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
